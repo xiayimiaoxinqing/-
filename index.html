@@ -184,6 +184,10 @@
             background: linear-gradient(to right, #f39c12, #e67e22);
         }
         
+        .btn-danger {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+        }
+        
         .activation-code {
             background: rgba(0, 0, 0, 0.3);
             border: 2px dashed #3498db;
@@ -281,10 +285,16 @@
             cursor: pointer;
             transition: all 0.2s;
             font-size: 0.9rem;
+            margin: 2px;
         }
         
         .action-btn:hover {
             background: rgba(52, 152, 219, 0.5);
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
         }
         
         footer {
@@ -452,6 +462,52 @@
             font-weight: bold;
         }
         
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            flex: 1;
+        }
+        
+        .search-box button {
+            width: auto;
+            padding: 0 20px;
+        }
+        
         @media (max-width: 768px) {
             .card-container {
                 grid-template-columns: 1fr;
@@ -471,6 +527,11 @@
                 margin: 20px 0;
                 justify-content: center;
             }
+            
+            .modal-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
         }
     </style>
 </head>
@@ -481,7 +542,7 @@
             <p class="subtitle">客户凭订单领取激活码 • 管理员全面管理系统</p>
             
             <div class="admin-control">
-                <input type="password" id="adminPassword" placeholder="qq269948311" style="display:none">
+                <input type="password" id="adminPassword" placeholder="管理员密码" style="display:none">
                 <button id="adminBtn" class="btn-admin admin-btn">
                     <i class="fas fa-lock"></i> 管理员登录
                 </button>
@@ -492,7 +553,7 @@
             <h3><i class="fas fa-info-circle"></i> 系统使用说明</h3>
             <ol>
                 <li><span class="highlight">客户使用</span>：输入订单编号，点击"领取激活码"按钮获取激活码</li>
-                <li><span class="highlight">管理员登录</span>：点击右上角"管理员登录".
+                <li><span class="highlight">管理员登录</span>：点击右上角"管理员登录"，密码为<span class="highlight">admin123</span></li>
                 <li><span class="highlight">管理员功能</span>：添加激活码、录入订单、处理退货、查看所有数据</li>
                 <li><span class="highlight">退出管理员模式</span>：管理员模式下点击"退出管理员模式"按钮</li>
             </ol>
@@ -511,9 +572,6 @@
                     <button id="customerClaimBtn">
                         <i class="fas fa-key"></i> 领取激活码
                     </button>
-                    <div class="activation-code" id="customerActivationCode" style="display:none">
-                        等待领取激活码...
-                    </div>
                     <div class="status-message" id="customerStatus"></div>
                 </div>
                 
@@ -533,19 +591,19 @@
         <div class="admin-panel">
             <div class="stat-box">
                 <div class="stat-item">
-                    <div class="stat-value" id="totalOrders">24</div>
+                    <div class="stat-value" id="totalOrders">0</div>
                     <div class="stat-label">总订单数</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value" id="activeCodes">18</div>
+                    <div class="stat-value" id="activeCodes">0</div>
                     <div class="stat-label">已激活</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value" id="availableCodes">86</div>
+                    <div class="stat-value" id="availableCodes">0</div>
                     <div class="stat-label">可用激活码</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value" id="returnedCodes">2</div>
+                    <div class="stat-value" id="returnedCodes">0</div>
                     <div class="stat-label">已退货</div>
                 </div>
             </div>
@@ -620,9 +678,6 @@
                     <button id="claimCodeBtn">
                         <i class="fas fa-key"></i> 领取激活码
                     </button>
-                    <div class="activation-code" id="activationCodeDisplay" style="display:none">
-                        等待领取激活码...
-                    </div>
                     <div class="status-message" id="claimStatus"></div>
                 </div>
                 
@@ -650,6 +705,11 @@
             
             <div class="card">
                 <h2><i class="fas fa-list"></i> 订单状态列表</h2>
+                <div class="search-box">
+                    <input type="text" id="searchOrderInput" placeholder="输入订单编号搜索...">
+                    <button id="searchOrderBtn" class="btn-sm"><i class="fas fa-search"></i> 搜索</button>
+                    <button id="resetSearchBtn" class="btn-sm btn-warning"><i class="fas fa-undo"></i> 重置</button>
+                </div>
                 <table class="orders-table">
                     <thead>
                         <tr>
@@ -662,46 +722,36 @@
                         </tr>
                     </thead>
                     <tbody id="ordersTableBody">
-                        <tr>
-                            <td>ORD20230625001</td>
-                            <td>XKJ8-7G2H-9F3D-1P5Q</td>
-                            <td>专业版</td>
-                            <td class="status-active">已激活</td>
-                            <td>2023-06-25 10:23</td>
-                            <td><button class="action-btn">详情</button></td>
-                        </tr>
-                        <tr>
-                            <td>ORD20230624005</td>
-                            <td>RT6Y-8U1I-0O9P-4L3K</td>
-                            <td>企业版</td>
-                            <td class="status-returned">已退货</td>
-                            <td>2023-06-24 15:47</td>
-                            <td><button class="action-btn">详情</button></td>
-                        </tr>
-                        <tr>
-                            <td>ORD20230623012</td>
-                            <td>MNB7-VC6X-2Z1A-9Q8W</td>
-                            <td>旗舰版</td>
-                            <td class="status-active">已激活</td>
-                            <td>2023-06-23 09:12</td>
-                            <td><button class="action-btn">详情</button></td>
-                        </tr>
-                        <tr>
-                            <td>ORD20230622008</td>
-                            <td>-</td>
-                            <td>基础版</td>
-                            <td class="status-pending">未激活</td>
-                            <td>2023-06-22 14:30</td>
-                            <td><button class="action-btn">详情</button></td>
-                        </tr>
+                        <!-- 订单数据将通过JS动态生成 -->
                     </tbody>
                 </table>
             </div>
             
             <div class="card">
                 <h2><i class="fas fa-key"></i> 激活码库存</h2>
+                <div class="search-box">
+                    <input type="text" id="searchCodeInput" placeholder="输入激活码搜索...">
+                    <button id="searchCodeBtn" class="btn-sm"><i class="fas fa-search"></i> 搜索</button>
+                    <button id="resetCodeSearchBtn" class="btn-sm btn-warning"><i class="fas fa-undo"></i> 重置</button>
+                </div>
                 <div id="codeListContainer">
                     <!-- 激活码列表将通过JS动态生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 激活码弹出模态框 -->
+        <div class="modal" id="codeModal">
+            <div class="modal-content">
+                <h2><i class="fas fa-key"></i> 您的激活码</h2>
+                <div class="activation-code" id="modalActivationCode"></div>
+                <div class="modal-buttons">
+                    <button id="copyCodeBtn" class="btn-success">
+                        <i class="fas fa-copy"></i> 复制激活码
+                    </button>
+                    <button id="closeModalBtn" class="btn-danger">
+                        <i class="fas fa-times"></i> 关闭
+                    </button>
                 </div>
             </div>
         </div>
@@ -715,48 +765,66 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // 模拟数据存储
-            let orders = [
-                {
-                    id: 'ORD20230625001',
-                    code: 'XKJ8-7G2H-9F3D-1P5Q',
-                    product: '专业版',
-                    status: 'active',
-                    date: '2023-06-25 10:23'
-                },
-                {
-                    id: 'ORD20230624005',
-                    code: 'RT6Y-8U1I-0O9P-4L3K',
-                    product: '企业版',
-                    status: 'returned',
-                    date: '2023-06-24 15:47'
-                },
-                {
-                    id: 'ORD20230623012',
-                    code: 'MNB7-VC6X-2Z1A-9Q8W',
-                    product: '旗舰版',
-                    status: 'active',
-                    date: '2023-06-23 09:12'
-                },
-                {
-                    id: 'ORD20230622008',
-                    code: '',
-                    product: '基础版',
-                    status: 'pending',
-                    date: '2023-06-22 14:30'
-                }
-            ];
-            
-            let activationCodes = [
-                { code: 'ABCD-1234-EFGH-5678', status: 'available', product: '专业版' },
-                { code: 'WXYZ-9012-LKJH-3456', status: 'available', product: '企业版' },
-                { code: 'PQRS-6789-MNOP-0123', status: 'used', product: '旗舰版' },
-                { code: 'UVWX-4567-YZAB-8901', status: 'available', product: '基础版' },
-                { code: 'CDEF-2345-GHIJ-6789', status: 'returned', product: '专业版' }
-            ];
+            let orders = [];
+            let activationCodes = [];
             
             // 管理员状态
             let isAdminMode = false;
-            const adminPassword = "qq269948311"; // 管理员密码
+            const adminPassword = "admin123"; // 管理员密码
+            
+            // DOM元素
+            const codeModal = document.getElementById('codeModal');
+            const modalActivationCode = document.getElementById('modalActivationCode');
+            const copyCodeBtn = document.getElementById('copyCodeBtn');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            
+            // 初始化一些示例数据
+            function initSampleData() {
+                if (orders.length === 0 && activationCodes.length === 0) {
+                    orders = [
+                        {
+                            id: 'ORD20230625001',
+                            code: 'XKJ8-7G2H-9F3D-1P5Q',
+                            product: '专业版',
+                            status: 'active',
+                            date: '2023-06-25 10:23'
+                        },
+                        {
+                            id: 'ORD20230624005',
+                            code: 'RT6Y-8U1I-0O9P-4L3K',
+                            product: '企业版',
+                            status: 'returned',
+                            date: '2023-06-24 15:47'
+                        },
+                        {
+                            id: 'ORD20230623012',
+                            code: 'MNB7-VC6X-2Z1A-9Q8W',
+                            product: '旗舰版',
+                            status: 'active',
+                            date: '2023-06-23 09:12'
+                        },
+                        {
+                            id: 'ORD20230622008',
+                            code: '',
+                            product: '基础版',
+                            status: 'pending',
+                            date: '2023-06-22 14:30'
+                        }
+                    ];
+                    
+                    activationCodes = [
+                        { code: 'ABCD-1234-EFGH-5678', status: 'available', product: '专业版' },
+                        { code: 'WXYZ-9012-LKJH-3456', status: 'available', product: '企业版' },
+                        { code: 'PQRS-6789-MNOP-0123', status: 'used', product: '旗舰版' },
+                        { code: 'UVWX-4567-YZAB-8901', status: 'available', product: '基础版' },
+                        { code: 'CDEF-2345-GHIJ-6789', status: 'returned', product: '专业版' }
+                    ];
+                    
+                    updateOrdersTable();
+                    updateCodeList();
+                    updateStats();
+                }
+            }
             
             // 更新统计信息
             function updateStats() {
@@ -782,9 +850,7 @@
                         isAdminMode = true;
                         this.innerHTML = '<i class="fas fa-lock-open"></i> 退出管理员模式';
                         document.getElementById('adminPassword').style.display = 'none';
-                        updateCodeList();
-                        updateOrdersTable();
-                        updateStats();
+                        initSampleData();
                     } else if (password !== null) {
                         alert("密码错误！");
                     }
@@ -799,12 +865,10 @@
             document.getElementById('customerClaimBtn').addEventListener('click', function() {
                 const orderId = document.getElementById('customerOrderId').value.trim();
                 const statusEl = document.getElementById('customerStatus');
-                const codeDisplay = document.getElementById('customerActivationCode');
                 
                 if (!orderId) {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> 请输入订单编号！';
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
@@ -813,31 +877,27 @@
                 if (!order) {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> 订单 ${orderId} 不存在！`;
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
                 if (order.status === 'returned') {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> 订单 ${orderId} 已退货，无法领取激活码！`;
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
                 if (order.status === 'active') {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> 订单 ${orderId} 已领取过激活码！`;
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
-                // 查找可用激活码
-                const availableCode = activationCodes.find(c => c.status === 'available');
+                // 查找可用激活码 (包括已退货的激活码)
+                const availableCode = activationCodes.find(c => c.status === 'available' || c.status === 'returned');
                 
                 if (!availableCode) {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> 当前没有可用激活码！`;
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
@@ -860,14 +920,35 @@
                 updateCodeList();
                 updateStats();
                 
-                statusEl.className = 'status-message success';
-                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> 激活码领取成功！`;
-                
-                codeDisplay.textContent = availableCode.code;
-                codeDisplay.style.display = 'block';
+                // 显示激活码弹窗
+                modalActivationCode.textContent = availableCode.code;
+                codeModal.style.display = 'flex';
                 
                 // 清空输入框
                 document.getElementById('customerOrderId').value = '';
+            });
+            
+            // 复制激活码
+            copyCodeBtn.addEventListener('click', function() {
+                const code = modalActivationCode.textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    alert('激活码已复制到剪贴板！');
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制激活码');
+                });
+            });
+            
+            // 关闭弹窗
+            closeModalBtn.addEventListener('click', function() {
+                codeModal.style.display = 'none';
+            });
+            
+            // 点击模态框外部关闭
+            codeModal.addEventListener('click', function(e) {
+                if (e.target === codeModal) {
+                    codeModal.style.display = 'none';
+                }
             });
             
             // 标签切换功能
@@ -1023,12 +1104,10 @@
             document.getElementById('claimCodeBtn').addEventListener('click', function() {
                 const orderId = document.getElementById('claimOrderId').value.trim();
                 const statusEl = document.getElementById('claimStatus');
-                const codeDisplay = document.getElementById('activationCodeDisplay');
                 
                 if (!orderId) {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> 请输入订单编号！';
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
@@ -1037,31 +1116,27 @@
                 if (!order) {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> 订单 ${orderId} 不存在！`;
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
                 if (order.status === 'returned') {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> 订单 ${orderId} 已退货，无法领取激活码！`;
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
                 if (order.status === 'active') {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> 订单 ${orderId} 已领取过激活码！`;
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
-                // 查找可用激活码
-                const availableCode = activationCodes.find(c => c.status === 'available');
+                // 查找可用激活码 (包括已退货的激活码)
+                const availableCode = activationCodes.find(c => c.status === 'available' || c.status === 'returned');
                 
                 if (!availableCode) {
                     statusEl.className = 'status-message error';
                     statusEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> 当前没有可用激活码！`;
-                    codeDisplay.style.display = 'none';
                     return;
                 }
                 
@@ -1087,9 +1162,6 @@
                 statusEl.className = 'status-message success';
                 statusEl.innerHTML = `<i class="fas fa-check-circle"></i> 激活码领取成功！`;
                 
-                codeDisplay.textContent = availableCode.code;
-                codeDisplay.style.display = 'block';
-                
                 // 清空输入框
                 document.getElementById('claimOrderId').value = '';
             });
@@ -1097,6 +1169,7 @@
             // 退货操作
             document.getElementById('returnBtn').addEventListener('click', function() {
                 const orderId = document.getElementById('returnOrderId').value.trim();
+                const reason = document.getElementById('returnReason').value;
                 const statusEl = document.getElementById('returnStatus');
                 
                 if (!orderId) {
@@ -1119,10 +1192,10 @@
                     return;
                 }
                 
-                // 更新激活码状态
+                // 更新激活码状态为可用
                 const code = activationCodes.find(c => c.code === order.code);
                 if (code) {
-                    code.status = 'returned';
+                    code.status = 'available'; // 改为available而不是returned
                 }
                 
                 // 执行退货
@@ -1140,20 +1213,70 @@
                 updateStats();
                 
                 statusEl.className = 'status-message success';
-                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> 订单 ${orderId} 退货成功，激活码已失效！`;
+                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> 订单 ${orderId} 退货成功，激活码已恢复可用！`;
                 
                 // 清空输入框
                 document.getElementById('returnOrderId').value = '';
             });
             
+            // 搜索订单
+            document.getElementById('searchOrderBtn').addEventListener('click', function() {
+                const searchTerm = document.getElementById('searchOrderInput').value.trim().toLowerCase();
+                if (!searchTerm) return;
+                
+                const filteredOrders = orders.filter(order => 
+                    order.id.toLowerCase().includes(searchTerm) ||
+                    (order.code && order.code.toLowerCase().includes(searchTerm)) ||
+                    (order.product && order.product.toLowerCase().includes(searchTerm))
+                );
+                
+                renderOrdersTable(filteredOrders);
+            });
+            
+            // 重置订单搜索
+            document.getElementById('resetSearchBtn').addEventListener('click', function() {
+                document.getElementById('searchOrderInput').value = '';
+                updateOrdersTable();
+            });
+            
+            // 搜索激活码
+            document.getElementById('searchCodeBtn').addEventListener('click', function() {
+                const searchTerm = document.getElementById('searchCodeInput').value.trim().toLowerCase();
+                if (!searchTerm) return;
+                
+                const filteredCodes = activationCodes.filter(code => 
+                    code.code.toLowerCase().includes(searchTerm) ||
+                    code.product.toLowerCase().includes(searchTerm)
+                );
+                
+                renderCodeList(filteredCodes);
+            });
+            
+            // 重置激活码搜索
+            document.getElementById('resetCodeSearchBtn').addEventListener('click', function() {
+                document.getElementById('searchCodeInput').value = '';
+                updateCodeList();
+            });
+            
             // 更新订单表格
             function updateOrdersTable() {
+                renderOrdersTable(orders);
+            }
+            
+            function renderOrdersTable(ordersToRender) {
                 const tbody = document.getElementById('ordersTableBody');
                 if (!tbody) return;
                 
                 tbody.innerHTML = '';
                 
-                orders.forEach(order => {
+                if (ordersToRender.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td colspan="6" style="text-align:center;">没有找到订单数据</td>`;
+                    tbody.appendChild(row);
+                    return;
+                }
+                
+                ordersToRender.forEach(order => {
                     const row = document.createElement('tr');
                     
                     row.innerHTML = `
@@ -1185,12 +1308,21 @@
             
             // 更新激活码列表
             function updateCodeList() {
+                renderCodeList(activationCodes);
+            }
+            
+            function renderCodeList(codesToRender) {
                 const container = document.getElementById('codeListContainer');
                 if (!container) return;
                 
                 container.innerHTML = '';
                 
-                activationCodes.forEach(code => {
+                if (codesToRender.length === 0) {
+                    container.innerHTML = '<div class="status-message info">没有找到激活码</div>';
+                    return;
+                }
+                
+                codesToRender.forEach(code => {
                     const codeItem = document.createElement('div');
                     codeItem.className = 'code-item';
                     
@@ -1208,10 +1340,49 @@
                     codeItem.innerHTML = `
                         <div class="code-value">${code.code}</div>
                         <div class="code-status ${statusClass}">${statusText}</div>
+                        <button class="action-btn btn-danger btn-sm delete-code-btn" data-code="${code.code}">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
                     `;
                     
                     container.appendChild(codeItem);
                 });
+                
+                // 添加删除按钮事件
+                document.querySelectorAll('.delete-code-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const code = this.getAttribute('data-code');
+                        if (confirm(`确定要删除激活码 ${code} 吗？`)) {
+                            deleteCode(code);
+                        }
+                    });
+                });
+            }
+            
+            // 删除激活码
+            function deleteCode(code) {
+                activationCodes = activationCodes.filter(c => c.code !== code);
+                
+                // 检查是否有订单使用了这个激活码
+                const orderUsingCode = orders.find(o => o.code === code);
+                if (orderUsingCode) {
+                    orderUsingCode.code = '';
+                    orderUsingCode.status = 'pending';
+                }
+                
+                updateCodeList();
+                updateOrdersTable();
+                updateStats();
+                
+                // 显示成功消息
+                const statusEl = document.getElementById('codeStatus');
+                statusEl.className = 'status-message success';
+                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> 激活码 ${code} 已删除！`;
+                
+                setTimeout(() => {
+                    statusEl.className = 'status-message';
+                    statusEl.innerHTML = '';
+                }, 3000);
             }
             
             // 初始化页面
